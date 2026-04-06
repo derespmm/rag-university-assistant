@@ -53,6 +53,10 @@ data/sample_queries/*
 !data/syllabi/.gitkeep
 !data/sample_queries/.gitkeep
 
+# Scratch test scripts — not committed
+tests/*
+!tests/.gitkeep
+
 # Uploaded syllabi (runtime temp storage)
 backend/uploads/
 
