@@ -37,7 +37,7 @@ rag-university-assistant/
 
 Before running the setup script, make sure you have the following installed:
 
-- **Python 3.10+** — https://python.org
+- **Python 3.12** — https://python.org (3.12.x specifically — 3.13+ and pre-release versions like 3.14 break several dependencies that require pre-built wheels)
 - **Node.js 22 (LTS)** — https://nodejs.org
 - **Git** — https://git-scm.com
 
@@ -50,20 +50,32 @@ git clone https://github.com/derespmm/rag-university-assistant.git
 cd rag-university-assistant
 ```
 
-### 3. Run the setup script
+### 3. Create the virtual environment and install dependencies
+
+Create the venv using Python 3.12 explicitly:
 
 ```bash
-bash scripts/setup.sh
+py -3.12 -m venv .venv
 ```
 
-This will:
-- Check that Python 3.10+ and Node 18+ are installed
-- Copy `.env.example` to `.env`
-- Create a Python virtual environment at `.venv/`
-- Install all Python dependencies from `backend/requirements.txt`
-- Install frontend Node dependencies (once `package.json` exists)
-- Create any missing data directories
-- Run a smoke test to confirm key packages imported correctly
+Activate it. In Git Bash:
+```bash
+source .venv/bin/activate
+```
+
+In PowerShell:
+```powershell
+.venv\Scripts\Activate.ps1
+```
+
+Install dependencies using `uv` (much faster than plain pip — resolves langchain's deep dependency tree in seconds):
+
+```bash
+pip install uv
+uv pip install -r backend/requirements.txt
+```
+
+> **Why uv?** The langchain ecosystem has many transitive dependencies. Plain `pip` can take 30+ minutes resolving them; `uv` does it in seconds.
 
 ### 4. Add your OpenAI API key
 
@@ -156,8 +168,8 @@ Then open a pull request on GitHub to merge into main.
 Update `requirements.txt` immediately and commit it so the other person gets it:
 
 ```bash
-pip install some-package
-pip freeze > backend/requirements.txt
+uv pip install some-package
+uv pip freeze > backend/requirements.txt
 git add backend/requirements.txt
 git commit -m "add some-package to requirements"
 ```
