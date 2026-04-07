@@ -1,0 +1,5 @@
+using this file to talk about the process of working on this project. specifically challenges and when the plan had to be changed
+
+the project setup was extremely tedious. have hundreds of dependencies in the requirements.txt file. pip did not like that. being too strict about versions causes collisions, but being too loose means pip takes 100 years to find versions that work together. ultimately went with uv pip and that worked like a charm
+
+the initial plan was to download all the policies in the policy library as pdfs. however, they are not stored as pdfs. the library just has the policies written within the webpages' html. this added another layer of challenges. i had claude write me a script that can scrape the information from every policy page and turn it into a pdf using playwright and chromium. hoping this works
