@@ -72,7 +72,7 @@ async def save_as_pdf(page, url: str, output_path: Path) -> None:
         return
 
     try:
-        await page.goto(url, wait_until="networkidle", timeout=30000)
+        await page.goto(url, wait_until="domcontentloaded", timeout=15000)
         await page.pdf(
             path=str(output_path),
             format="A4",
