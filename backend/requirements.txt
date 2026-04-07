@@ -69,8 +69,10 @@ opentelemetry-semantic-conventions==0.61b0
 orjson==3.11.8
 overrides==7.7.0
 packaging==25.0
+beautifulsoup4==4.13.4
 pdfminer-six==20231228
 pdfplumber==0.11.4
+playwright==1.51.0
 pillow==12.2.0
 pip==26.0.1
 pluggy==1.6.0
