@@ -7,68 +7,126 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$ROOT"
 
+echo "=== RAG University Assistant — Dev Setup ==="
+echo ""
+
 # --- Check required tools ---
 
-for cmd in python3 pip node npm git; do
+echo "Checking system requirements..."
+
+for cmd in git node npm; do
   command -v "$cmd" &>/dev/null || { echo "Error: $cmd is not installed."; exit 1; }
 done
 
-PY_MAJOR=$(python3 -c 'import sys; print(sys.version_info.major)')
-PY_MINOR=$(python3 -c 'import sys; print(sys.version_info.minor)')
-if [[ "$PY_MAJOR" -lt 3 || "$PY_MINOR" -lt 10 ]]; then
-  echo "Error: Python 3.10+ required."
+# Python 3.12 is required — 3.13+ breaks pydantic-core and other native packages
+if ! command -v python3 &>/dev/null; then
+  echo "Error: python3 is not installed."
   exit 1
 fi
+
+PY_MAJOR=$(python3 -c 'import sys; print(sys.version_info.major)')
+PY_MINOR=$(python3 -c 'import sys; print(sys.version_info.minor)')
+if [[ "$PY_MAJOR" -lt 3 || "$PY_MINOR" -lt 12 ]]; then
+  echo "Error: Python 3.12+ required (found $PY_MAJOR.$PY_MINOR)."
+  echo "Download Python 3.12 from https://python.org"
+  exit 1
+fi
+echo "  Python $PY_MAJOR.$PY_MINOR OK"
 
 NODE_MAJOR=$(node -e 'process.stdout.write(String(process.version.split(".")[0].slice(1)))')
 if [[ "$NODE_MAJOR" -lt 18 ]]; then
-  echo "Error: Node.js 18+ required."
+  echo "Error: Node.js 18+ required (found $NODE_MAJOR)."
   exit 1
 fi
+echo "  Node.js $NODE_MAJOR OK"
 
 # --- Environment file ---
 
+echo ""
+echo "Setting up environment..."
+
 if [[ ! -f "$ROOT/.env" ]]; then
   cp "$ROOT/.env.example" "$ROOT/.env"
-  echo "Created .env from .env.example. Add your OPENAI_API_KEY before running the app."
+  echo "  Created .env from .env.example."
+  echo "  *** Add your OPENAI_API_KEY to .env before running the app. ***"
+else
+  echo "  .env already exists, skipping."
 fi
 
 # --- Python virtual environment ---
 
+echo ""
+echo "Setting up Python virtual environment..."
+
 if [[ ! -d "$ROOT/.venv" ]]; then
   python3 -m venv "$ROOT/.venv"
+  echo "  Created .venv"
+else
+  echo "  .venv already exists, skipping."
 fi
 
 source "$ROOT/.venv/bin/activate"
-pip install --upgrade pip --quiet
-pip install -r "$ROOT/backend/requirements.txt" --quiet
 
-# --- Frontend dependencies ---
+# install uv for fast dependency resolution, then use it for everything else
+pip install uv --quiet
+echo "  Installing Python dependencies via uv (this may take a moment)..."
+uv pip install -r "$ROOT/backend/requirements.txt" --quiet
 
-if [[ -f "$ROOT/frontend/package.json" ]]; then
-  cd "$ROOT/frontend" && npm install --silent && cd "$ROOT"
-else
-  echo "Warning: frontend/package.json not found. Re-run this script after scaffolding the frontend."
-fi
+# playwright requires a separate browser download step
+echo "  Installing Playwright Chromium browser..."
+playwright install chromium --quiet
 
 # --- Data directories ---
 
+echo ""
+echo "Creating data directories..."
+
 for dir in data/policies data/syllabi data/sample_queries backend/uploads; do
   mkdir -p "$ROOT/$dir"
+  # create .gitkeep so empty dirs are preserved in git
+  touch "$ROOT/$dir/.gitkeep"
 done
+echo "  data/policies/, data/syllabi/, data/sample_queries/, backend/uploads/ OK"
+
+# --- Frontend dependencies ---
+
+echo ""
+echo "Setting up frontend..."
+
+if [[ -f "$ROOT/frontend/package.json" ]]; then
+  cd "$ROOT/frontend" && npm install --silent && cd "$ROOT"
+  echo "  Frontend dependencies installed."
+else
+  echo "  frontend/package.json not found — skipping."
+  echo "  Re-run this script after the frontend is scaffolded."
+fi
 
 # --- Smoke test ---
 
-for pkg in fastapi langchain chromadb openai pypdf; do
-  python3 -c "import $pkg" &>/dev/null || echo "Warning: $pkg could not be imported."
+echo ""
+echo "Running smoke test..."
+
+for pkg in fastapi langchain chromadb openai pypdf pdfplumber tiktoken playwright; do
+  if python3 -c "import $pkg" &>/dev/null; then
+    echo "  $pkg OK"
+  else
+    echo "  WARNING: $pkg could not be imported — check your installation."
+  fi
 done
 
 # --- Done ---
 
 echo ""
-echo "Setup complete. Next steps:"
-echo "  1. source .venv/bin/activate"
-echo "  2. Fill in OPENAI_API_KEY in .env"
-echo "  3. python scripts/ingest_policies.py"
-echo "  4. uvicorn backend.main:app --reload"
-echo "  5. cd frontend && npm run dev"
+echo "=== Setup complete ==="
+echo ""
+echo "Next steps:"
+echo "  1. Fill in OPENAI_API_KEY (and other values) in .env"
+echo "  2. Add university policy PDFs OR run the scraper:"
+echo "       python scripts/scrape_policies.py"
+echo "  3. Ingest policies into ChromaDB:"
+echo "       python scripts/ingest_policies.py"
+echo "  4. Start the backend:"
+echo "       source .venv/bin/activate"
+echo "       uvicorn backend.main:app --reload"
+echo "  5. Start the frontend (once scaffolded):"
+echo "       cd frontend && npm run dev"
