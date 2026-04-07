@@ -14,7 +14,7 @@ import re
 from pathlib import Path
 
 import requests
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 from playwright.async_api import async_playwright
 from tqdm import tqdm
 
@@ -42,9 +42,11 @@ def collect_policy_urls() -> list[tuple[str, str]]:
 
     urls = []
     for a in container.find_all("a", href=True):
-        href = a["href"].strip()
+        if not isinstance(a, Tag):
+            continue
+        href = str(a.get("href", "")).strip()
         # skip anchor-only links (section jumps) and external links
-        if href.startswith("#") or href.startswith("http"):
+        if not href or href.startswith("#") or href.startswith("http"):
             continue
 
         full_url = BASE_URL + href
