@@ -55,7 +55,7 @@ def embed_chunks(chunks: list[dict]) -> tuple[list[str], list[list[float]], list
 
     ids = [f"{c['source']}__{c['chunk']}" for c in chunks]
 
-    metadatas = [
+    metadatas: list[dict[str, str | int | float | bool]] = [
         {
             "source": c["source"],
             "page": c["page"],
