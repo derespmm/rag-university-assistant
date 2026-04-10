@@ -2,9 +2,14 @@
 # retriever to fetch relevant chunks from ChromaDB, injects them into a prompt
 # as context, then calls the LLM to generate a grounded answer. This is the
 # central module that chat.py calls.
+#
+# Advanced RAG pipeline:
+#   1. Retrieval — hybrid BM25 + vector search merged via Reciprocal Rank Fusion
+#   2. Expansion — each retrieved chunk is expanded with neighboring chunks
+#   3. Generation — LLM answers using the expanded top-k chunks as context
 
-from backend.core.retriever import retrieve
 from backend.core.llm import ask
+from backend.core.retriever import retrieve
 
 POLICIES_COLLECTION = "policies"
 
@@ -16,19 +21,19 @@ def run(
     top_k: int = 5,
 ) -> dict:
     """
-    Run the full RAG pipeline for a user question.
+    Run the full advanced RAG pipeline for a user question.
 
     Args:
         question:        The user's question.
         collection_name: ChromaDB collection to retrieve from. Defaults to the
                          pre-ingested policy collection. Pass a per-upload
                          collection name to query a syllabus instead.
-        top_k:           Number of chunks to retrieve before passing to the LLM.
+        top_k:           Number of chunks to pass to the LLM after merging.
 
     Returns:
         A dict with:
             - answer:  The LLM-generated answer string.
-            - sources: List of source dicts (source, page, chunk, distance)
+            - sources: List of source dicts (source, page, chunk, rrf_score)
                        for the chunks used as context.
     """
     chunks = retrieve(question, collection_name=collection_name, top_k=top_k)
@@ -40,7 +45,7 @@ def run(
             "source": c["source"],
             "page": c["page"],
             "chunk": c["chunk"],
-            "distance": c["distance"],
+            "rrf_score": c.get("rrf_score", 0.0),
         }
         for c in chunks
     ]

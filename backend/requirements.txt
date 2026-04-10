@@ -1,4 +1,4 @@
-﻿aiohappyeyeballs==2.6.1
+aiohappyeyeballs==2.6.1
 aiohttp==3.13.5
 aiosignal==1.4.0
 annotated-doc==0.0.4
@@ -37,7 +37,9 @@ idna==3.11
 importlib-metadata==8.7.1
 importlib-resources==6.5.2
 iniconfig==2.3.0
+jinja2==3.1.6
 jiter==0.13.0
+joblib==1.5.3
 jsonpatch==1.33
 jsonpointer==3.1.1
 jsonschema==4.26.0
@@ -51,12 +53,14 @@ langchain-openai==0.3.35
 langchain-text-splitters==0.3.11
 langsmith==0.7.25
 markdown-it-py==4.0.0
+markupsafe==3.0.3
 marshmallow==3.26.2
 mdurl==0.1.2
 mmh3==5.2.1
 mpmath==1.3.0
 multidict==6.7.1
 mypy-extensions==1.1.0
+networkx==3.6.1
 numpy==2.4.4
 oauthlib==3.3.1
 onnxruntime==1.24.4
@@ -95,6 +99,7 @@ python-dateutil==2.9.0.post0
 python-dotenv==1.0.1
 python-multipart==0.0.20
 pyyaml==6.0.3
+rank-bm25==0.2.2
 referencing==0.37.0
 regex==2026.4.4
 requests==2.33.1
@@ -102,6 +107,11 @@ requests-oauthlib==2.0.0
 requests-toolbelt==1.0.0
 rich==14.3.3
 rpds-py==0.30.0
+safetensors==0.7.0
+scikit-learn==1.8.0
+scipy==1.17.1
+sentence-transformers==5.4.0
+setuptools==81.0.0
 shellingham==1.5.4
 six==1.17.0
 sniffio==1.3.1
@@ -110,9 +120,12 @@ sqlalchemy==2.0.49
 starlette==0.41.3
 sympy==1.14.0
 tenacity==9.1.4
+threadpoolctl==3.6.0
 tiktoken==0.8.0
 tokenizers==0.22.2
+torch==2.11.0
 tqdm==4.67.1
+transformers==5.5.3
 typer==0.24.1
 typing-extensions==4.15.0
 typing-inspect==0.9.0
