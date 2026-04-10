@@ -1,6 +1,16 @@
 # RAG University Assistant
 
-A chatbot that lets students upload a course syllabus and ask questions that are answered using both the syllabus and official university policy documents. Built with LangChain, ChromaDB, and the OpenAI API.
+A chatbot that lets students ask questions about university policies and upload a course syllabus to query alongside those policies. Built with FastAPI, ChromaDB, and the OpenAI API.
+
+---
+
+## How it works
+
+The app uses an advanced RAG (Retrieval-Augmented Generation) pipeline:
+
+1. **Hybrid search** — combines vector similarity search with BM25 keyword search and merges results via Reciprocal Rank Fusion (RRF). Vector search finds semantically similar chunks; BM25 catches exact policy terms like "suspension" or "fine".
+2. **Context window expansion** — after retrieving a chunk, the chunks immediately before and after it are fetched and stitched in, giving the LLM full surrounding context.
+3. **Generation** — the top-k expanded chunks are injected into a prompt and sent to the LLM, which produces a grounded answer with source citations.
 
 ---
 
@@ -9,24 +19,24 @@ A chatbot that lets students upload a course syllabus and ask questions that are
 ```
 rag-university-assistant/
 ├── backend/
-│   ├── api/          # route handlers (chat, upload)
-│   ├── core/         # RAG pipeline logic (embedder, retriever, llm)
-│   ├── data/         # PDF parsing and chunking
-│   └── tests/
+│   ├── api/              # route handlers (chat.py, upload.py)
+│   ├── core/             # RAG pipeline (embedder, retriever, llm, pipeline)
+│   ├── data/             # PDF parsing and chunking
+│   └── requirements.txt
 ├── frontend/
 │   └── src/
-│       ├── components/
-│       ├── pages/
-│       ├── hooks/
-│       └── utils/
+│       ├── App.jsx       # chat UI and syllabus upload form
+│       ├── main.jsx      # React entry point
+│       ├── App.css
+│       └── index.css
 ├── data/
-│   ├── policies/     # university policy PDFs (gitignored)
-│   ├── syllabi/      # sample syllabi for testing (gitignored)
+│   ├── policies/         # university policy PDFs (gitignored)
+│   ├── syllabi/          # sample syllabi for testing (gitignored)
 │   └── sample_queries/
 ├── scripts/
-│   ├── setup.sh      # one-time dev environment setup
+│   ├── setup.sh          # one-time dev environment setup
 │   └── ingest_policies.py
-└── docs/
+└── tests/                # manual test scripts
 ```
 
 ---
@@ -37,7 +47,7 @@ rag-university-assistant/
 
 Before running the setup script, make sure you have the following installed:
 
-- **Python 3.12** — https://python.org (3.12.x specifically — 3.13+ and pre-release versions like 3.14 break several dependencies that require pre-built wheels)
+- **Python 3.12** — https://python.org (3.12.x specifically — 3.13+ breaks several dependencies that require pre-built wheels)
 - **Node.js 22 (LTS)** — https://nodejs.org
 - **Git** — https://git-scm.com
 
@@ -60,7 +70,7 @@ py -3.12 -m venv .venv
 
 Activate it. In Git Bash:
 ```bash
-source .venv/bin/activate
+source .venv/Scripts/activate
 ```
 
 In PowerShell:
@@ -68,26 +78,36 @@ In PowerShell:
 .venv\Scripts\Activate.ps1
 ```
 
-Install dependencies using `uv` (much faster than plain pip — resolves langchain's deep dependency tree in seconds):
+Install dependencies using `uv` (much faster than plain pip):
 
 ```bash
 pip install uv
 uv pip install -r backend/requirements.txt
 ```
 
-> **Why uv?** The langchain ecosystem has many transitive dependencies. Plain `pip` can take 30+ minutes resolving them; `uv` does it in seconds.
+### 4. Install frontend dependencies
 
-### 4. Add your OpenAI API key
+```bash
+cd frontend
+npm install
+cd ..
+```
 
-Open `.env` and fill in your key:
+### 5. Add your OpenAI API key
+
+Copy `.env.example` to `.env` and fill in your key:
+
+```bash
+cp .env.example .env
+```
 
 ```
 OPENAI_API_KEY=sk-...
 ```
 
-Get a key at https://platform.openai.com/api-keys. Never share this key or commit it to git — the `.env` file is gitignored for this reason.
+Get a key at https://platform.openai.com/api-keys. Never share this key or commit it to git — the `.env` file is gitignored.
 
-### 5. Ingest university policy documents
+### 6. Ingest university policy documents
 
 Place policy PDFs in `data/policies/`, then run:
 
@@ -97,11 +117,11 @@ python scripts/ingest_policies.py
 
 This embeds the documents and stores them in the local ChromaDB vector store. You only need to re-run this if the policy documents change.
 
-### 6. Start the app
+### 7. Start the app
 
 In one terminal (backend):
 ```bash
-source .venv/bin/activate
+source .venv/Scripts/activate
 uvicorn backend.main:app --reload
 ```
 
@@ -111,19 +131,21 @@ cd frontend
 npm run dev
 ```
 
+Then open `http://localhost:5173` in your browser.
+
 ---
 
 ## Daily workflow
 
 ### Every time you open a new terminal
 
-The virtual environment doesn't stay active between sessions. You need to reactivate it each time:
+The virtual environment doesn't stay active between sessions. Reactivate it each time:
 
 ```bash
-source .venv/bin/activate
+source .venv/Scripts/activate
 ```
 
-Your prompt will show `(.venv)` when it's active. All `pip install` and `python` commands should be run with the environment active.
+Your prompt will show `(.venv)` when it's active.
 
 ### Before starting any work
 
@@ -144,15 +166,7 @@ All work happens on a feature branch. Create one before you start:
 git checkout -b feature/your-feature-name
 ```
 
-Good branch names describe what you're building:
-- `feature/pdf-ingestion`
-- `feature/chat-api`
-- `feature/frontend-upload`
-- `feature/accuracy-eval`
-
 ### Committing your work
-
-Save progress often — don't wait until a feature is complete to commit.
 
 ```bash
 git status                        # always check what you're about to stage
@@ -165,7 +179,7 @@ Then open a pull request on GitHub to merge into main.
 
 ### If you install a new Python package
 
-Update `requirements.txt` immediately and commit it so the other person gets it:
+Update `requirements.txt` immediately and commit it:
 
 ```bash
 uv pip install some-package
@@ -176,8 +190,12 @@ git commit -m "add some-package to requirements"
 
 ### Running tests
 
+Test scripts live in `tests/` and can be run directly:
+
 ```bash
-pytest backend/tests/
+python tests/test_pipeline.py
+python tests/test_retriever.py
+python tests/test_llm.py
 ```
 
 ---

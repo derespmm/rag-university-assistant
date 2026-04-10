@@ -65,16 +65,17 @@ else
   echo "  .venv already exists, skipping."
 fi
 
-source "$ROOT/.venv/bin/activate"
+# activate — works in both Git Bash (Scripts/) and Linux/Mac (bin/)
+if [[ -f "$ROOT/.venv/Scripts/activate" ]]; then
+  source "$ROOT/.venv/Scripts/activate"
+else
+  source "$ROOT/.venv/bin/activate"
+fi
 
 # install uv for fast dependency resolution, then use it for everything else
 pip install uv --quiet
 echo "  Installing Python dependencies via uv (this may take a moment)..."
 uv pip install -r "$ROOT/backend/requirements.txt" --quiet
-
-# playwright requires a separate browser download step
-echo "  Installing Playwright Chromium browser..."
-playwright install chromium --quiet
 
 # --- Data directories ---
 
@@ -83,7 +84,6 @@ echo "Creating data directories..."
 
 for dir in data/policies data/syllabi data/sample_queries backend/uploads; do
   mkdir -p "$ROOT/$dir"
-  # create .gitkeep so empty dirs are preserved in git
   touch "$ROOT/$dir/.gitkeep"
 done
 echo "  data/policies/, data/syllabi/, data/sample_queries/, backend/uploads/ OK"
@@ -106,7 +106,7 @@ fi
 echo ""
 echo "Running smoke test..."
 
-for pkg in fastapi langchain chromadb openai pypdf pdfplumber tiktoken playwright; do
+for pkg in fastapi chromadb openai pypdf pdfplumber tiktoken rank_bm25 sentence_transformers; do
   if python3 -c "import $pkg" &>/dev/null; then
     echo "  $pkg OK"
   else
@@ -121,12 +121,11 @@ echo "=== Setup complete ==="
 echo ""
 echo "Next steps:"
 echo "  1. Fill in OPENAI_API_KEY (and other values) in .env"
-echo "  2. Add university policy PDFs OR run the scraper:"
-echo "       python scripts/scrape_policies.py"
+echo "  2. Add university policy PDFs to data/policies/"
 echo "  3. Ingest policies into ChromaDB:"
 echo "       python scripts/ingest_policies.py"
 echo "  4. Start the backend:"
-echo "       source .venv/bin/activate"
+echo "       source .venv/Scripts/activate"
 echo "       uvicorn backend.main:app --reload"
-echo "  5. Start the frontend (once scaffolded):"
+echo "  5. Start the frontend:"
 echo "       cd frontend && npm run dev"
