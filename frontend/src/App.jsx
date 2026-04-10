@@ -1,120 +1,135 @@
 import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
 import './App.css'
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [question, setQuestion] = useState('')
+  const [answer, setAnswer] = useState('')
+  const [sources, setSources] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  const [file, setFile] = useState(null)
+  const [collectionName, setCollectionName] = useState('policies')
+  const [uploadStatus, setUploadStatus] = useState('')
+
+  async function handleChat(e) {
+    e.preventDefault()
+    if (!question.trim()) return
+
+    setLoading(true)
+    setError('')
+    setAnswer('')
+    setSources([])
+
+    try {
+      const res = await fetch('/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question, collection_name: collectionName }),
+      })
+
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.detail || 'Something went wrong.')
+      }
+
+      const data = await res.json()
+      setAnswer(data.answer)
+      setSources(data.sources)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleUpload(e) {
+    e.preventDefault()
+    if (!file) return
+
+    setUploadStatus('Uploading...')
+
+    const formData = new FormData()
+    formData.append('file', file)
+
+    try {
+      const res = await fetch('/upload', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.detail || 'Upload failed.')
+      }
+
+      const data = await res.json()
+      setCollectionName(data.collection_name)
+      setUploadStatus(`Uploaded "${data.filename}" (${data.chunks_ingested} chunks). Now querying your syllabus.`)
+    } catch (err) {
+      setUploadStatus(`Error: ${err.message}`)
+    }
+  }
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
+    <div className="app">
+      <header>
+        <h1>University Assistant</h1>
+        <p>Ask questions about university policies or your course syllabus.</p>
+      </header>
+
+      <section className="upload-section">
+        <h2>Upload a Syllabus (optional)</h2>
+        <form onSubmit={handleUpload} className="upload-form">
+          <input
+            type="file"
+            accept=".pdf"
+            onChange={(e) => setFile(e.target.files[0])}
+          />
+          <button type="submit" disabled={!file}>
+            Upload
+          </button>
+        </form>
+        {uploadStatus && <p className="upload-status">{uploadStatus}</p>}
       </section>
 
-      <div className="ticks"></div>
+      <section className="chat-section">
+        <h2>Ask a Question</h2>
+        <form onSubmit={handleChat} className="chat-form">
+          <input
+            type="text"
+            placeholder="e.g. What is the policy on academic dishonesty?"
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+          />
+          <button type="submit" disabled={loading || !question.trim()}>
+            {loading ? 'Thinking...' : 'Ask'}
+          </button>
+        </form>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
+        {error && <p className="error">{error}</p>}
+
+        {answer && (
+          <div className="answer">
+            <h3>Answer</h3>
+            <p>{answer}</p>
+
+            {sources.length > 0 && (
+              <div className="sources">
+                <h4>Sources</h4>
+                <ul>
+                  {sources.map((s, i) => (
+                    <li key={i}>
+                      {s.source} — page {s.page}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
       </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+    </div>
   )
 }
 
