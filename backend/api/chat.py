@@ -21,7 +21,7 @@ class SourceItem(BaseModel):
     source: str
     page: int
     chunk: int
-    distance: float
+    rrf_score: float
 
 
 class ChatResponse(BaseModel):
