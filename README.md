@@ -41,6 +41,57 @@ rag-university-assistant/
 
 ---
 
+## Running with Docker (recommended)
+
+Docker packages the entire app — Python, Node, all dependencies — into containers so anyone can run it without installing anything beyond Docker itself.
+
+### Requirements
+
+- **Docker Desktop** — https://www.docker.com/products/docker-desktop
+- An **OpenAI API key** — https://platform.openai.com/api-keys
+
+### Setup
+
+1. Clone the repo and enter the directory:
+
+```bash
+git clone https://github.com/derespmm/rag-university-assistant.git
+cd rag-university-assistant
+```
+
+2. Create a `.env` file with your API key:
+
+```bash
+cp .env.example .env
+# then open .env and fill in your OPENAI_API_KEY
+```
+
+3. Acquire the university policy PDFs by running the scraper (this downloads them automatically into `data/policies/`):
+
+```bash
+docker-compose run --rm backend python scripts/scrape_policies.py
+```
+
+4. Build and start the containers:
+
+```bash
+docker-compose up --build
+```
+
+5. In a second terminal, ingest the policy documents (run once):
+
+```bash
+docker-compose exec backend python scripts/ingest_policies.py
+```
+
+6. Open `http://localhost` in your browser.
+
+After the first build, you can start the app anytime with just `docker-compose up`.
+
+To stop: `docker-compose down`
+
+---
+
 ## Getting started (do this once)
 
 ### 1. Install system requirements
