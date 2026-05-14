@@ -11,6 +11,7 @@ function App() {
   const [file, setFile] = useState(null)
   const [collectionName, setCollectionName] = useState('policies')
   const [uploadStatus, setUploadStatus] = useState('')
+  const [syllabusName, setSyllabusName] = useState('')
 
   async function handleChat(e) {
     e.preventDefault()
@@ -65,45 +66,76 @@ function App() {
 
       const data = await res.json()
       setCollectionName(data.collection_name)
-      setUploadStatus(`Uploaded "${data.filename}" (${data.chunks_ingested} chunks). Now querying your syllabus.`)
+      setSyllabusName(data.filename)
+      setUploadStatus(`Ingested ${data.chunks_ingested} chunks. Now querying your syllabus.`)
+      setFile(null)
     } catch (err) {
       setUploadStatus(`Error: ${err.message}`)
     }
   }
 
+  function resetToPolices() {
+    setCollectionName('policies')
+    setSyllabusName('')
+    setUploadStatus('')
+    setAnswer('')
+    setSources([])
+    setError('')
+  }
+
+  const queryingPolicies = collectionName === 'policies'
+
   return (
     <div className="app">
       <header>
-        <h1>University Assistant</h1>
-        <p>Ask questions about university policies or your course syllabus.</p>
+        <h1>Miami University Policy Assistant</h1>
+        <p>Ask questions about university policies or upload a course syllabus to query it directly.</p>
       </header>
 
       <section className="upload-section">
-        <h2>Upload a Syllabus (optional)</h2>
-        <form onSubmit={handleUpload} className="upload-form">
-          <input
-            type="file"
-            accept=".pdf"
-            onChange={(e) => setFile(e.target.files[0])}
-          />
-          <button type="submit" disabled={!file}>
-            Upload
-          </button>
-        </form>
+        <h2>Syllabus</h2>
+
+        {syllabusName ? (
+          <div className="syllabus-active">
+            <span>Querying <strong>{syllabusName}</strong></span>
+            <button className="secondary" onClick={resetToPolices}>
+              Switch back to policies
+            </button>
+          </div>
+        ) : (
+          <form onSubmit={handleUpload} className="upload-form">
+            <input
+              type="file"
+              accept=".pdf"
+              onChange={(e) => setFile(e.target.files[0])}
+            />
+            <button type="submit" disabled={!file}>
+              Upload
+            </button>
+          </form>
+        )}
+
         {uploadStatus && <p className="upload-status">{uploadStatus}</p>}
       </section>
 
       <section className="chat-section">
-        <h2>Ask a Question</h2>
+        <h2>
+          Ask a Question
+          {!queryingPolicies && ' (syllabus)'}
+        </h2>
         <form onSubmit={handleChat} className="chat-form">
           <input
             type="text"
-            placeholder="e.g. What is the policy on academic dishonesty?"
+            placeholder={
+              queryingPolicies
+                ? 'e.g. What is the policy on academic dishonesty?'
+                : 'e.g. When is the final exam?'
+            }
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
           />
           <button type="submit" disabled={loading || !question.trim()}>
-            {loading ? 'Thinking...' : 'Ask'}
+            {loading ? 'Thinking…' : 'Ask'}
           </button>
         </form>
 
@@ -111,8 +143,10 @@ function App() {
 
         {answer && (
           <div className="answer">
-            <h3>Answer</h3>
-            <p>{answer}</p>
+            <div>
+              <h3>Answer</h3>
+              <p className="answer-text">{answer}</p>
+            </div>
 
             {sources.length > 0 && (
               <div className="sources">
@@ -120,7 +154,7 @@ function App() {
                 <ul>
                   {sources.map((s, i) => (
                     <li key={i}>
-                      {s.source} — page {s.page}
+                      {s.source} — page {s.page}, chunk {s.chunk}
                     </li>
                   ))}
                 </ul>
